@@ -151,6 +151,17 @@ class U3:
                 print("+---+---+---+")
         print(delimiter, end="")
 
+    def print_meta_board(self):
+        print("+---+---+---+")
+        for i, row in enumerate(self.meta_board):
+            print("|", end="")
+            for cell in row:
+                print(f" {cell} |", end="")
+            print()
+            if i < 2:
+                print("+---+---+---+")
+        print("+---+---+---+")
+
 if __name__ == '__main__':
     u3 = U3()
     moves = [
