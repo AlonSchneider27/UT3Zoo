@@ -23,3 +23,20 @@ class RandomPlayer(Player):
 
     def opponent_move(self, move):
         print(f"Opponent moved: {move}")
+
+class HumanPlayer(Player):
+    def make_move(self, game):
+        game.print_board()
+        while True:
+            try:
+                move = input("Enter your move (big_row, big_col, small_row, small_col): ")
+                big_row, big_col, small_row, small_col = map(int, move.split(','))
+                if (big_row, big_col, small_row, small_col) in game.get_valid_moves():
+                    return big_row, big_col, small_row, small_col
+                else:
+                    print("Invalid move. Try again.")
+            except ValueError:
+                print("Invalid input. Please enter four integers separated by commas.")
+
+    def opponent_move(self, move):
+        print(f"Opponent moved: {move}")
