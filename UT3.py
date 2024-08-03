@@ -9,7 +9,7 @@ class U3:
         self.moves = []
         self.free_move_from_last_move = False  # Flag for if the last move leads to a full/won small_board - choose your move everywhere
         self.place_holder = '~'  # a place_holder for an empy cell in a won small_board
-        self.meta_board = [[' ' for _ in range(3)] for _ in range(3)]
+        self.meta_board = [[self.place_holder for _ in range(3)] for _ in range(3)]
 
     def make_move(self, big_row, big_col, small_row, small_col):
         # Check if the game is already over
