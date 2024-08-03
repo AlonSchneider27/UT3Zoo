@@ -32,14 +32,20 @@ class HumanPlayer(Player):
     def make_move(self, valid_moves):
         while True:
             try:
-                move = input("Enter your move (big_row, big_col, small_row, small_col): ")
-                big_row, big_col, small_row, small_col = map(int, move.split(','))
+                # Input is in the form of a 4-digit number, e.g. "0210"
+                move = input("Enter your move as a 4-digit number (big_row big_col small_row small_col): ")
+                if len(move) != 4 or not move.isdigit():
+                    raise ValueError("Input must be a 4-digit number")
+                big_row = int(move[0])
+                big_col = int(move[1])
+                small_row = int(move[2])
+                small_col = int(move[3])
                 if (big_row, big_col, small_row, small_col) in valid_moves:
                     return big_row, big_col, small_row, small_col
                 else:
                     print("Invalid move. Try again.")
-            except ValueError:
-                print("Invalid input. Please enter four integers separated by commas.")
+            except ValueError as e:
+                print(f"Invalid input: {e}. Please enter a 4-digit number.")1
 
     def opponent_move(self, move):
         print(f"Opponent moved: {move}")
