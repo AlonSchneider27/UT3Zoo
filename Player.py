@@ -1,6 +1,7 @@
 import random
 from UT3 import U3
 
+
 class Player:
     def __init__(self, symbol):
         self.symbol = symbol
@@ -14,6 +15,7 @@ class Player:
     def opponent_move(self, move):
         pass
 
+
 class RandomPlayer(Player):
     def make_move(self, valid_moves):
         return random.choice(valid_moves)
@@ -23,6 +25,7 @@ class RandomPlayer(Player):
 
     def opponent_move(self, move):
         print(f"Opponent moved: {move}")
+
 
 class HumanPlayer(Player):
     def make_move(self, valid_moves):
