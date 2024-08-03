@@ -20,7 +20,7 @@ def play_game(player1, player2, game):
         else:
             print(f"\nTurn {turn}: Player {current_player.symbol}'s turn")
 
-        move = current_player.make_move(valid_moves)
+        move = current_player.make_move(game)
 
         print(f"Player {current_player.symbol} moves: {move}")
         game.make_move(*move)
