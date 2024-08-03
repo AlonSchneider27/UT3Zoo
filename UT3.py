@@ -61,15 +61,6 @@ class U3:
         # Check if the board is full (draw)
         elif self.is_board_full():
             self.game_over = True
-        #
-        # # Check for a win in the small board and potentially the big board
-        # if self.check_small_board_win(big_row, big_col):
-        #     if self.check_big_board_win():
-        #         self.game_over = True
-        #         self.winner = self.current_player
-        # # Check if the board is full (draw)
-        # elif self.is_board_full():
-        #     self.game_over = True
 
         # Switch to the other player
         self.current_player = 'O' if self.current_player == 'X' else 'X'
@@ -94,31 +85,9 @@ class U3:
         if board[0][2] == board[1][1] == board[2][0] and board[0][2] not in optional_values:
             won = True  # Other diagonal win
 
-        # if won: # if the game in the small board is won, update the meta board of the result
-        #     self.meta_board[big_row][big_col] = self.current_player
-
         return won
 
     def check_big_board_win(self):
-        # # Check rows
-        # for i in range(3):
-        #     if all(self.check_small_board_win(i, j) for j in range(3)):
-        #         return True
-        #
-        # # Check columns
-        # for i in range(3):
-        #     if all(self.check_small_board_win(j, i) for j in range(3)):
-        #         return True
-        #
-        # # Check main diagonal
-        # if all(self.check_small_board_win(i, i) for i in range(3)):
-        #     return True
-        #
-        # # Check secondary diagonal
-        # if all(self.check_small_board_win(i, 2 - i) for i in range(3)):
-        #     return True
-        #
-        # return False
         board = self.meta_board
         won = False
         # Check rows
@@ -170,7 +139,6 @@ class U3:
                 for small_col in range(3):
                     cell = self.board[big_row][big_col][small_row][small_col]
                     row_string += f"{cell if cell != ' ' else '·'}" if place_holder else f"{cell if cell not in [' ', self.place_holder] else '·'}"  # print with or without the place_holder
-                    # row_string += f"{cell if cell != ' ' else '·'}" if place_holder else f"{cell if cell not in [' ', self.place_holder] else '·'}"  # print with or without the place_holder
                 row_string += "|"
             return row_string
 
@@ -185,7 +153,6 @@ class U3:
 
 if __name__ == '__main__':
     u3 = U3()
-
     moves = [
         (1, 1, 1, 1),
         (1, 1, 0, 1),
