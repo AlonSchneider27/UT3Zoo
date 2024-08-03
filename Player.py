@@ -115,7 +115,7 @@ class MCTSPlayer(Player):
                                                 self.exploration_weight * math.sqrt(math.log(node.visits) / c.visits))
 
     def opponent_move(self, move):
-        self.game_state.make_move(*move)
-
+        # self.game_state.make_move(*move)
+        pass
     def set_game_state(self, game_state):
         self.game_state = deepcopy(game_state)
