@@ -59,7 +59,7 @@ class U3:
                 self.winner = self.current_player
 
         # Check if the board is full (draw)
-        elif self.is_board_full():
+        if self.is_board_full():
             self.game_over = True
 
         # Switch to the other player
