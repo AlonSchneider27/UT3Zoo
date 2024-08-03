@@ -85,6 +85,7 @@ def train_q_player(q_player, opponent, num_episodes):
         while not game.game_over:
             action = q_player.choose_action(game, training=True)
             game.make_move(*action)
+            if game.game_over: break
             next_state = q_player.get_state_key(game)
             reward = q_player.get_reward(game)
             q_player.update_q_value(state, action, next_state, reward)
