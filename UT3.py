@@ -9,6 +9,7 @@ class U3:
         self.moves = []
         self.free_move_from_last_move = False  # Flag for if the last move leads to a full/won small_board - choose your move everywhere
         self.place_holder = '~'  # a place_holder for an empy cell in a won small_board
+        self.meta_board = [[' ' for _ in range(3)] for _ in range(3)]
 
     def make_move(self, big_row, big_col, small_row, small_col):
         # Check if the game is already over
@@ -43,21 +44,32 @@ class U3:
         else:
             self.free_move_from_last_move = False
 
-        # Check if the small board is won by the move. If won, fill empty cells with self.place_holder
+        # Check if the small board is won by the move. If won, fill empty cells with self.place_holder, update the meta board of the result, Check for a win in the small board and potentially the big board
         if self.check_small_board_win(big_row, big_col):
+            # if the game in the small board is won, update the meta board of the result
+            self.meta_board[big_row][big_col] = self.current_player
+            # fill empty cells with self.place_holder
             for i in range(3):
                 for j in range(3):
                     if self.board[big_row][big_col][i][j] == ' ':
                         self.board[big_row][big_col][i][j] = self.place_holder
-
-        # Check for a win in the small board and potentially the big board
-        if self.check_small_board_win(big_row, big_col):
+            # Check for a win
             if self.check_big_board_win():
                 self.game_over = True
                 self.winner = self.current_player
+
         # Check if the board is full (draw)
         elif self.is_board_full():
             self.game_over = True
+        #
+        # # Check for a win in the small board and potentially the big board
+        # if self.check_small_board_win(big_row, big_col):
+        #     if self.check_big_board_win():
+        #         self.game_over = True
+        #         self.winner = self.current_player
+        # # Check if the board is full (draw)
+        # elif self.is_board_full():
+        #     self.game_over = True
 
         # Switch to the other player
         self.current_player = 'O' if self.current_player == 'X' else 'X'
@@ -68,41 +80,65 @@ class U3:
         board = self.board[big_row][big_col]
         optional_values = [' ', self.place_holder]  # values representing empty cells ' ' or place_holder for empy cell in a won small_board
 
+        won = False
         # Check rows and columns
         for i in range(3):
             if board[i][0] == board[i][1] == board[i][2] and board[i][0] not in optional_values:
-                return True  # Row win
+                won = True  # Row win
             if board[0][i] == board[1][i] == board[2][i] and board[0][i] not in optional_values:
-                return True  # Column win
+                won = True  # Column win
 
         # Check diagonals
         if board[0][0] == board[1][1] == board[2][2] and board[0][0] not in optional_values:
-            return True  # Main diagonal win
+            won = True  # Main diagonal win
         if board[0][2] == board[1][1] == board[2][0] and board[0][2] not in optional_values:
-            return True  # Other diagonal win
+            won = True  # Other diagonal win
 
-        return False
+        # if won: # if the game in the small board is won, update the meta board of the result
+        #     self.meta_board[big_row][big_col] = self.current_player
+
+        return won
 
     def check_big_board_win(self):
+        # # Check rows
+        # for i in range(3):
+        #     if all(self.check_small_board_win(i, j) for j in range(3)):
+        #         return True
+        #
+        # # Check columns
+        # for i in range(3):
+        #     if all(self.check_small_board_win(j, i) for j in range(3)):
+        #         return True
+        #
+        # # Check main diagonal
+        # if all(self.check_small_board_win(i, i) for i in range(3)):
+        #     return True
+        #
+        # # Check secondary diagonal
+        # if all(self.check_small_board_win(i, 2 - i) for i in range(3)):
+        #     return True
+        #
+        # return False
+        board = self.meta_board
+        won = False
         # Check rows
-        for i in range(3):
-            if all(self.check_small_board_win(i, j) for j in range(3)):
-                return True
+        for row in board:
+            if row[0] == row[1] == row[2] and row[0] not in [self.place_holder, ' ']:
+                won = True
 
         # Check columns
-        for i in range(3):
-            if all(self.check_small_board_win(j, i) for j in range(3)):
-                return True
+        for col in range(3):
+            if board[0][col] == board[1][col] == board[2][col] and board[0][col] not in [self.place_holder, ' ']:
+                won = True
 
-        # Check main diagonal
-        if all(self.check_small_board_win(i, i) for i in range(3)):
-            return True
+        # Check diagonals
+        if board[0][0] == board[1][1] == board[2][2] and board[0][0] not in [self.place_holder, ' ']:
+            won = True
+        if board[0][2] == board[1][1] == board[2][0] and board[0][2] not in [self.place_holder, ' ']:
+            won = True
 
-        # Check secondary diagonal
-        if all(self.check_small_board_win(i, 2 - i) for i in range(3)):
-            return True
-
-        return False
+        # No win found
+        return won
 
 
     def is_small_board_full(self, big_row, big_col):
