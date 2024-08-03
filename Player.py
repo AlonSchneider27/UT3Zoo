@@ -58,7 +58,7 @@ class HumanPlayer(Player):
 
 class MCTSNode:
     def __init__(self, game_state, parent=None, move=None):
-        self.game_state = game_state
+        self.game_state = deepcopy(game_state)
         self.parent = parent
         self.move = move
         self.children = []
@@ -73,8 +73,9 @@ class MCTSPlayer(Player):
         self.exploration_weight = exploration_weight
 
     def make_move(self, game):
-        valid_moves = game.get_valid_moves()
-        root = MCTSNode(self.game_state)
+        # valid_moves = game.get_valid_moves()
+        # root = MCTSNode(self.game_state)
+        root = MCTSNode(game_state=game)
 
         for _ in range(self.iterations):
             node = self.select(root)
