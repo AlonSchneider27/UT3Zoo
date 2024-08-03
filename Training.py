@@ -81,7 +81,7 @@ if __name__ == '__main__':
     opponents_and_episodes = [
         (RandomPlayer('O'), 500),
         (QLearningPlayer('O'), 500),
-        (MCTSPlayer('O'), 500)
+        (MCTSPlayer('O'), 1)
     ]
 
     trained_q_player = train_q_player_multiple_opponents(q_player, opponents_and_episodes)
