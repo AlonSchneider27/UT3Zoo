@@ -1,85 +1,10 @@
 from Play import *
 from Player import *
 from UT3 import *
-
-
-# def train_q_player(q_player, num_episodes_random=5000, num_episodes_self=10000, num_episodes_mcts=5000):
-#     print("Training against Random Player...")
-#     random_opponent = RandomPlayer('O')
-#     q_player.train(num_episodes_random, random_opponent)
-#
-#     print("Training in self-play...")
-#     self_play_opponent = QLearningPlayer('O')
-#     q_player.train(num_episodes_self, self_play_opponent)
-#
-#     print("Training against MCTS Player...")
-#     mcts_opponent = MCTSPlayer('O')
-#     q_player.train(num_episodes_mcts, mcts_opponent)
-#
-#     return q_player
-#
-#
-# def play_game_Q_train(player1, player2, game):
-#     players = [player1, player2]
-#     current_player_index = 0
-#
-#     while not game.game_over:
-#         current_player = players[current_player_index]
-#         valid_moves = game.get_valid_moves()
-#
-#         if isinstance(current_player, (MCTSPlayer, QLearningPlayer)):
-#             current_player.set_game_state(game)
-#
-#         move = current_player.make_move(valid_moves)
-#         game.make_move(*move)
-#
-#         players[1 - current_player_index].opponent_move(move)
-#         current_player_index = 1 - current_player_index
-#
-#     return game.winner
-#
-#
-# def evaluate_players(player1, player2, num_games=100):
-#     wins = {player1.symbol: 0, player2.symbol: 0, 'Draw': 0}
-#
-#     for _ in range(num_games):
-#         game = U3()
-#         winner = play_game_Q_train(player1, player2, game)
-#         if winner:
-#             wins[winner] += 1
-#         else:
-#             wins['Draw'] += 1
-#
-#     return wins
-#
-# if __name__ == '__main__':
-#
-#     game = U3()  # Training
-#     q_player = QLearningPlayer('X')
-#     trained_q_player = train_q_player(q_player, num_episodes_random=500, num_episodes_self=500, num_episodes_mcts=500)
-#     trained_q_player.save_q_table('q_player_best.pkl')
-#
-#     # Evaluation
-#     random_player = RandomPlayer('O')
-#     mcts_player = MCTSPlayer('O')
-#
-#     print("Q-Learning vs Random:")
-#     results = evaluate_players(trained_q_player, random_player)
-#     print(results)
-#
-#     print("Q-Learning vs MCTS:")
-#     results = evaluate_players(trained_q_player, mcts_player)
-#     print(results)
-
-    # # You can now use the trained Q-Learning player in your game
-    # game_q_player = QLearningPlayer('X')
-    # game_q_player.load_q_table('q_player_best.pkl')
-
-
-###################################################
+from tqdm import tqdm
 
 def train_q_player(q_player, opponent, num_episodes):
-    for episode in range(num_episodes):
+    for episode in tqdm(range(num_episodes), desc=f"Training with {type(opponent).__name__}", unit="episode"):
         game = U3()
         state = q_player.get_state_key(game)
         while not game.game_over:
@@ -96,8 +21,8 @@ def train_q_player(q_player, opponent, num_episodes):
                 else:
                     opponent_move = opponent.make_move(game)
                 game.make_move(*opponent_move)
-        if (episode + 1) % 100 == 0:
-            print(f"Episode {episode + 1}/{num_episodes} completed")
+        # if (episode + 1) % 100 == 0:
+        #     print(f"Episode {episode + 1}/{num_episodes} completed")
     return q_player
 
 
@@ -106,7 +31,6 @@ def train_q_player_multiple_opponents(q_player, opponents_and_episodes):
         print(f"Training against {opponent.__class__.__name__}...")
         train_q_player(q_player, opponent, num_episodes)
     return q_player
-
 
 
 def evaluate_players(player1, player2, num_games=100):
@@ -161,11 +85,11 @@ if __name__ == '__main__':
     ]
 
     trained_q_player = train_q_player_multiple_opponents(q_player, opponents_and_episodes)
-    # trained_q_player.save_q_table('q_player_best.pkl')
+    trained_q_player.save_q_table('q_player_best.pkl')
 
     print("\nEvaluating Q-Learning vs Random:")
-    # q_player = QLearningPlayer('X')
-    # q_player.load_q_table('q_player_best.pkl')
+    q_player = QLearningPlayer('X')
+    q_player.load_q_table('q_player_best.pkl')
     random_player = RandomPlayer('O')
     wins, games = evaluate_players(q_player, random_player, num_games=100)
 
