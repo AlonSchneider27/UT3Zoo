@@ -105,8 +105,55 @@ def play_game(player1, player2, game):
     print(f"Game over. Winner: {game.winner}")
 
 
-# Now let's run a game
+def Zoo():
+    while True:
+        game = U3()
+
+        print("\nChoose player types:")
+        print("1. Human")
+        print("2. Random AI")
+        print("3. MCTS AI")
+
+        player1_type = input("Select Player 1 type (1, 2, or 3): ")
+        player2_type = input("Select Player 2 type (1, 2, or 3): ")
+
+        def create_player(player_type, symbol):
+            if player_type == '1':
+                return HumanPlayer(symbol)
+            elif player_type == '2':
+                return RandomPlayer(symbol)
+            elif player_type == '3':
+                return MCTSPlayer(symbol)
+            else:
+                raise ValueError("Invalid player type")
+
+        player1 = create_player(player1_type, 'X')
+        player2 = create_player(player2_type, 'O')
+
+        print("\nStarting the game!")
+        game.print_board(place_holder=True)
+        play_game(player1, player2, game)
+        print(f'Final Board after {len(game.moves)} Turns:')
+        game.print_board(place_holder=True)
+        print('Final Meta Board:')
+        game.print_meta_board()
+
+        play_again = int(input("\nDo you want to play another game? YES<-1 No<-0 "))
+        if play_again != 1:
+            break
+
+    print("Thanks for playing!")
+
+
 if __name__ == "__main__":
+    Zoo()
+
+
+
+
+
+# Now let's run a game
+# if __name__ == "__main__":
 
     ## RANDOM VS RANDOM
     # game = U3()
@@ -139,40 +186,3 @@ if __name__ == "__main__":
     # game.print_board(place_holder=True)
     # print('Final Meta Board:')
     # game.print_meta_board()
-
-## MCTS VS RANDOM VS HUMAN
-
-    if __name__ == "__main__":
-        game = U3()
-
-        print("Choose player types:")
-        print("1. Human")
-        print("2. Random AI")
-        print("3. MCTS AI")
-
-        player1_type = input("Select Player 1 type (1, 2, or 3): ")
-        player2_type = input("Select Player 2 type (1, 2, or 3): ")
-
-
-        def create_player(player_type, symbol):
-            if player_type == '1':
-                return HumanPlayer(symbol)
-            elif player_type == '2':
-                return RandomPlayer(symbol)
-            elif player_type == '3':
-                return MCTSPlayer(symbol)
-            else:
-                raise ValueError("Invalid player type")
-
-
-        player1 = create_player(player1_type, 'X')
-        player2 = create_player(player2_type, 'O')
-
-        print("\nStarting the game!")
-        game.print_board(place_holder=True)
-        play_game(player1, player2, game)
-        print('Final Board:')
-        game.print_board(place_holder=True)
-        print('Final Meta Board:')
-        game.print_meta_board()
-
