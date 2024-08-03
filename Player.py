@@ -45,7 +45,7 @@ class HumanPlayer(Player):
                 else:
                     print("Invalid move. Try again.")
             except ValueError as e:
-                print(f"Invalid input: {e}. Please enter a 4-digit number.")1
+                print(f"Invalid input: {e}. Please enter a 4-digit number.")
 
     def opponent_move(self, move):
         print(f"Opponent moved: {move}")
