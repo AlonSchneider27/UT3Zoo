@@ -66,6 +66,7 @@ def play_game(player1, player2, game):
 
 # Now let's run a game
 if __name__ == "__main__":
+
     ## RANDOM VS RANDOM
     # game = U3()
     # player1 = RandomPlayer('X')
