@@ -25,13 +25,12 @@ class RandomPlayer(Player):
         print(f"Opponent moved: {move}")
 
 class HumanPlayer(Player):
-    def make_move(self, game):
-        game.print_board()
+    def make_move(self, valid_moves):
         while True:
             try:
                 move = input("Enter your move (big_row, big_col, small_row, small_col): ")
                 big_row, big_col, small_row, small_col = map(int, move.split(','))
-                if (big_row, big_col, small_row, small_col) in game.get_valid_moves():
+                if (big_row, big_col, small_row, small_col) in valid_moves:
                     return big_row, big_col, small_row, small_col
                 else:
                     print("Invalid move. Try again.")
