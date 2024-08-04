@@ -248,7 +248,7 @@ class DQNNet(nn.Module):
 
 class DQNAgent(Player):
     def __init__(self, symbol, input_channels=3, action_size=81, memory_size=10000, batch_size=64, gamma=0.95,
-                 epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995, learning_rate=0.001):
+                 epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995, learning_rate=0.001, training=False):
         super().__init__(symbol)
         self.input_channels = input_channels
         self.action_size = action_size
@@ -292,9 +292,9 @@ class DQNAgent(Player):
 
         return torch.FloatTensor(state).unsqueeze(0).to(self.device)
 
-    def make_move(self, game):
+    def make_move(self, game, training=False):
         state = self.get_state(game)
-        if np.random.rand() <= self.epsilon:
+        if np.random.rand() <= self.epsilon and training:
             return random.choice(game.get_valid_moves())
 
         act_values = self.model(state)
@@ -363,7 +363,7 @@ def train_dqn_agent(agent, opponent, num_episodes):
 
         while not done:
             if game.current_player == agent.symbol:
-                move = agent.make_move(game)
+                move = agent.make_move(game, training=True)
                 game.make_move(*move)
                 next_state = agent.get_state(game)
                 reward = 1 if game.winner == agent.symbol else -1 if game.winner else 0
