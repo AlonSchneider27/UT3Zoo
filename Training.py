@@ -75,31 +75,43 @@ def evaluate_players(player1, player2, num_games=100):
     return wins, games
 # Usage example:
 if __name__ == '__main__':
-    game = U3()
-    q_player = QLearningPlayer('X')
+    """
+    QLearningPlayer Training
+    """
+    #
+    # game = U3()
+    # q_player = QLearningPlayer('X')
+    #
+    # opponents_and_episodes = [
+    #     (RandomPlayer('O'), 500),
+    #     (QLearningPlayer('O'), 500),
+    #     (MCTSPlayer('O'), 1)
+    # ]
+    #
+    # trained_q_player = train_q_player_multiple_opponents(q_player, opponents_and_episodes)
+    # trained_q_player.save_q_table('q_player_best.pkl')
+    #
+    # print("\nEvaluating Q-Learning vs Random:")
+    # q_player = QLearningPlayer('X')
+    # q_player.load_q_table('q_player_best.pkl')
+    # random_player = RandomPlayer('O')
+    # wins, games = evaluate_players(q_player, random_player, num_games=100)
+    #
+    # print("\nEvaluating Q-Learning vs MCTS:")
+    # mcts_player = MCTSPlayer('O')
+    # wins, games = evaluate_players(q_player, mcts_player, num_games=100)
+    #
+    # # You can do more analysis with the 'games' data if needed
+    # # For example, to find the longest and shortest games:
+    # longest_game = max(games, key=lambda x: x[1])
+    # shortest_game = min(games, key=lambda x: x[1])
+    # print(f"\nLongest game: {longest_game[1]} moves, Winner: {longest_game[0]}")
+    # print(f"Shortest game: {shortest_game[1]} moves, Winner: {shortest_game[0]}")
 
-    opponents_and_episodes = [
-        (RandomPlayer('O'), 500),
-        (QLearningPlayer('O'), 500),
-        (MCTSPlayer('O'), 1)
-    ]
-
-    trained_q_player = train_q_player_multiple_opponents(q_player, opponents_and_episodes)
-    trained_q_player.save_q_table('q_player_best.pkl')
-
-    print("\nEvaluating Q-Learning vs Random:")
-    q_player = QLearningPlayer('X')
-    q_player.load_q_table('q_player_best.pkl')
-    random_player = RandomPlayer('O')
-    wins, games = evaluate_players(q_player, random_player, num_games=100)
-
-    print("\nEvaluating Q-Learning vs MCTS:")
-    mcts_player = MCTSPlayer('O')
-    wins, games = evaluate_players(q_player, mcts_player, num_games=100)
-
-    # You can do more analysis with the 'games' data if needed
-    # For example, to find the longest and shortest games:
-    longest_game = max(games, key=lambda x: x[1])
-    shortest_game = min(games, key=lambda x: x[1])
-    print(f"\nLongest game: {longest_game[1]} moves, Winner: {longest_game[0]}")
-    print(f"Shortest game: {shortest_game[1]} moves, Winner: {shortest_game[0]}")
+    """
+    DQN Training
+    """
+    dqn_agent = DQNAgent(symbol='X', input_channels=3, action_size=81, memory_size=10000, batch_size=64, gamma=0.95, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.99995, learning_rate=0.001)
+    random_opponent = RandomPlayer('O')
+    trained_agent = train_dqn_agent(dqn_agent, random_opponent, num_episodes=10000)
+    trained_agent.save_model('dqn_u3_model.pth')
