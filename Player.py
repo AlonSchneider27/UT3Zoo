@@ -1,9 +1,18 @@
+import numpy as np
 import random
 import math
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+
+from collections import deque
 from copy import deepcopy
 import pickle
+from tqdm import tqdm
+
 from UT3 import *
-import numpy as np
 
 
 class Player:
@@ -139,10 +148,11 @@ class QLearningPlayer(Player):
     def get_state_key(self, game): # turns a game object of U3 into a state representation - str(dict( U3 fields ))
         # return str(game.board)
         tmp = deepcopy(game)
-        state = str({'board':tmp.board, 'current_player':tmp.current_player, 'last_move':tmp.last_move,
-                     'game_over':tmp.game_over, 'winner':tmp.winner, 'moves':tmp.moves,
-                     'free_move_from_last_move':tmp.free_move_from_last_move,
-                     'place_holder':tmp.place_holder, 'meta_board':tmp.meta_board})
+        # state = str({'board':tmp.board, 'current_player':tmp.current_player, 'last_move':tmp.last_move,
+        #              'game_over':tmp.game_over, 'winner':tmp.winner, 'moves':tmp.moves,
+        #              'free_move_from_last_move':tmp.free_move_from_last_move,
+        #              'place_holder':tmp.place_holder, 'meta_board':tmp.meta_board})
+        state = str({'board': tmp.board, 'last_move': tmp.last_move,})
         return state
 
     def state_key_to_u3(self, state_key):
@@ -153,14 +163,14 @@ class QLearningPlayer(Player):
 
         # Set the fields from the state dictionary
         new_game.board = state_dict['board']
-        new_game.current_player = state_dict['current_player']
+        # new_game.current_player = state_dict['current_player']
         new_game.last_move = state_dict['last_move']
-        new_game.game_over = state_dict['game_over']
-        new_game.winner = state_dict['winner']
-        new_game.moves = state_dict['moves']
-        new_game.free_move_from_last_move = state_dict['free_move_from_last_move']
-        new_game.place_holder = state_dict['place_holder']
-        new_game.meta_board = state_dict['meta_board']
+        # new_game.game_over = state_dict['game_over']
+        # new_game.winner = state_dict['winner']
+        # new_game.moves = state_dict['moves']
+        # new_game.free_move_from_last_move = state_dict['free_move_from_last_move']
+        # new_game.place_holder = state_dict['place_holder']
+        # new_game.meta_board = state_dict['meta_board']
 
         return new_game
 
@@ -216,5 +226,162 @@ class QLearningPlayer(Player):
 
     def set_game_state(self, game_state):
         self.game_state = deepcopy(game_state)
+
+
+class DQNNet(nn.Module):
+    def __init__(self, input_channels, action_size):
+        super(DQNNet, self).__init__()
+        self.conv1 = nn.Conv2d(input_channels, 32, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.fc1 = nn.Linear(64 * 9 * 9, 256)
+        self.fc2 = nn.Linear(256, action_size)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc1(x))
+        return self.fc2(x)
+
+
+class DQNAgent(Player):
+    def __init__(self, symbol, input_channels=3, action_size=81, memory_size=10000, batch_size=64, gamma=0.95,
+                 epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995, learning_rate=0.001):
+        super().__init__(symbol)
+        self.input_channels = input_channels
+        self.action_size = action_size
+        self.memory = deque(maxlen=memory_size)
+        self.batch_size = batch_size
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.epsilon_min = epsilon_min
+        self.epsilon_decay = epsilon_decay
+        self.learning_rate = learning_rate
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.model = DQNNet(input_channels, action_size).to(self.device)
+        self.target_model = DQNNet(input_channels, action_size).to(self.device)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+
+        self.update_target_model()
+
+    def get_state(self, game):
+        state = np.zeros((self.input_channels, 9, 9), dtype=np.float32)
+        for i in range(3):
+            for j in range(3):
+                for k in range(3):
+                    for l in range(3):
+                        cell = game.board[i][j][k][l]
+                        if cell == self.symbol:
+                            state[0, i * 3 + k, j * 3 + l] = 1
+                        elif cell != ' ' and cell != '~':
+                            state[1, i * 3 + k, j * 3 + l] = 1
+                        elif cell == '~':
+                            state[2, i * 3 + k, j * 3 + l] = 1
+
+        # Add current player and free move information to the state
+        if game.current_player == self.symbol:
+            state[0, :, :] += 0.1  # Slightly increase values in the player's channel
+        else:
+            state[1, :, :] += 0.1  # Slightly increase values in the opponent's channel
+
+        if game.free_move_from_last_move:
+            state[2, :, :] += 0.1  # Slightly increase values in the '~' channel to indicate free move
+
+        return torch.FloatTensor(state).unsqueeze(0).to(self.device)
+
+    def make_move(self, game):
+        state = self.get_state(game)
+        if np.random.rand() <= self.epsilon:
+            return random.choice(game.get_valid_moves())
+
+        act_values = self.model(state)
+        valid_moves = game.get_valid_moves()
+        valid_indices = [self.move_to_index(move) for move in valid_moves]
+        best_move_index = torch.argmax(act_values[0, valid_indices]).item()
+        return valid_moves[best_move_index]
+
+    def remember(self, state, action, reward, next_state, done):
+        self.memory.append((state, action, reward, next_state, done))
+
+    def train(self):
+        if len(self.memory) < self.batch_size:
+            return
+
+        minibatch = random.sample(self.memory, self.batch_size)
+        states, actions, rewards, next_states, dones = zip(*minibatch)
+
+        states = torch.cat(states)
+        next_states = torch.cat(next_states)
+        actions = torch.tensor(actions).long().to(self.device)
+        rewards = torch.tensor(rewards).float().to(self.device)
+        dones = torch.tensor(dones).float().to(self.device)
+
+        current_q_values = self.model(states).gather(1, actions.unsqueeze(1))
+        next_q_values = self.target_model(next_states).max(1)[0].detach()
+        target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
+
+        loss = F.mse_loss(current_q_values.squeeze(), target_q_values)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
+
+    def update_target_model(self):
+        self.target_model.load_state_dict(self.model.state_dict())
+
+    @staticmethod
+    def move_to_index(move):
+        br, bc, sr, sc = move
+        return br * 27 + bc * 9 + sr * 3 + sc
+
+    @staticmethod
+    def index_to_move(index):
+        br = index // 27
+        bc = (index % 27) // 9
+        sr = (index % 9) // 3
+        sc = index % 3
+        return (br, bc, sr, sc)
+
+    def save_model(self, path):
+        torch.save(self.model.state_dict(), path)
+
+    def load_model(self, path):
+        self.model.load_state_dict(torch.load(path))
+        self.model.eval()
+
+def train_dqn_agent(agent, opponent, num_episodes):
+    progress_bar = tqdm(range(num_episodes), desc="Training", unit="episode")
+    for episode in progress_bar:
+        game = U3()
+        state = agent.get_state(game)
+        done = False
+
+        while not done:
+            if game.current_player == agent.symbol:
+                move = agent.make_move(game)
+                game.make_move(*move)
+                next_state = agent.get_state(game)
+                reward = 1 if game.winner == agent.symbol else -1 if game.winner else 0
+                done = game.game_over
+                agent.remember(state, agent.move_to_index(move), reward, next_state, done)
+                state = next_state
+                agent.train()
+            else:
+                opponent_move = opponent.make_move(game)
+                game.make_move(*opponent_move)
+                done = game.game_over
+
+        if episode % 100 == 0:
+            print(f"Episode: {episode}, Epsilon: {agent.epsilon:.2f}")
+            agent.update_target_model()
+
+    return agent
+
+
 
 
