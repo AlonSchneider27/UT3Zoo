@@ -13,6 +13,7 @@ def play_game(player1, player2, game):
 
         if isinstance(current_player, (MCTSPlayer, QLearningPlayer)):
             current_player.set_game_state(game)
+        # DQNAgent doesn't need set_game_state, it uses get_state in make_move
 
         if isinstance(current_player, HumanPlayer):
             print(f"\nTurn {turn}: It's your turn, Player {current_player.symbol}")
@@ -31,7 +32,8 @@ def play_game(player1, player2, game):
         print("\n")  # Add a blank line for readability
 
         # Inform the other player about the move
-        players[1 - current_player_index].opponent_move(move)
+        if hasattr(players[1 - current_player_index], 'opponent_move'):
+            players[1 - current_player_index].opponent_move(move)
 
         # Switch players
         current_player_index = 1 - current_player_index
@@ -50,9 +52,10 @@ def Zoo():
         print("2. Random AI")
         print("3. MCTS AI")
         print("4. Q-Learning AI")
+        print("5. DQN AI")
 
-        player1_type = input("Select Player 1 type (1, 2, 3, or 4): ")
-        player2_type = input("Select Player 2 type (1, 2, 3, or 4): ")
+        player1_type = input("Select Player 1 type (1, 2, 3, 4, or 5): ")
+        player2_type = input("Select Player 2 type (1, 2, 3, 4, or 5): ")
 
         def create_player(player_type, symbol):
             if player_type == '1':
@@ -65,6 +68,10 @@ def Zoo():
                 q_player = QLearningPlayer(symbol)
                 q_player.load_q_table('q_player_best_QR5000_250MCTS.pkl')  # Load the trained Q-table
                 return q_player
+            elif player_type == '5':
+                dqn_player = DQNAgent(symbol)
+                dqn_player.load_model('dqn_u3_model.pth')
+                return dqn_player
             else:
                 raise ValueError("Invalid player type")
 
@@ -84,6 +91,5 @@ def Zoo():
             break
 
     print("Thanks for playing!")
-
 if __name__ == "__main__":
     Zoo()
