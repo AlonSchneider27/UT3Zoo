@@ -11,7 +11,7 @@ def play_game(player1, player2, game):
         current_player = players[current_player_index]
         valid_moves = game.get_valid_moves()
 
-        if isinstance(current_player, MCTSPlayer):
+        if isinstance(current_player, (MCTSPlayer, QLearningPlayer)):
             current_player.set_game_state(game)
 
         if isinstance(current_player, HumanPlayer):
@@ -41,7 +41,6 @@ def play_game(player1, player2, game):
     # Game over
     print(f"Game over. Winner: {game.winner}")
 
-
 def Zoo():
     while True:
         game = U3()
@@ -50,9 +49,10 @@ def Zoo():
         print("1. Human")
         print("2. Random AI")
         print("3. MCTS AI")
+        print("4. Q-Learning AI")
 
-        player1_type = input("Select Player 1 type (1, 2, or 3): ")
-        player2_type = input("Select Player 2 type (1, 2, or 3): ")
+        player1_type = input("Select Player 1 type (1, 2, 3, or 4): ")
+        player2_type = input("Select Player 2 type (1, 2, 3, or 4): ")
 
         def create_player(player_type, symbol):
             if player_type == '1':
@@ -61,6 +61,10 @@ def Zoo():
                 return RandomPlayer(symbol)
             elif player_type == '3':
                 return MCTSPlayer(symbol)
+            elif player_type == '4':
+                q_player = QLearningPlayer(symbol)
+                q_player.load_q_table('q_player_best_QR5000_250MCTS.pkl')  # Load the trained Q-table
+                return q_player
             else:
                 raise ValueError("Invalid player type")
 
@@ -80,7 +84,6 @@ def Zoo():
             break
 
     print("Thanks for playing!")
-
 
 if __name__ == "__main__":
     Zoo()
