@@ -75,6 +75,10 @@ def evaluate_players(player1, player2, num_games=100):
     return wins, games
 # Usage example:
 if __name__ == '__main__':
+
+    # DQNAgent
+    # evaluate_players(player1, player2, num_games=100)
+
     """
     QLearningPlayer Training
     """
@@ -111,7 +115,7 @@ if __name__ == '__main__':
     """
     DQN Training
     """
-    dqn_agent = DQNAgent(symbol='X', input_channels=3, action_size=81, memory_size=10000, batch_size=64, gamma=0.95, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.99995, learning_rate=0.001)
-    random_opponent = RandomPlayer('O')
-    trained_agent = train_dqn_agent(dqn_agent, random_opponent, num_episodes=10000)
-    trained_agent.save_model('dqn_u3_model.pth')
+    # dqn_agent = DQNAgent(symbol='X', input_channels=3, action_size=81, memory_size=10000, batch_size=64, gamma=0.95, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.99995, learning_rate=0.001)
+    # random_opponent = RandomPlayer('O')
+    # trained_agent = train_dqn_agent(dqn_agent, random_opponent, num_episodes=10000)
+    # trained_agent.save_model('dqn_u3_model.pth')
