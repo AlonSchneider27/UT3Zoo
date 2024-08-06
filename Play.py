@@ -11,7 +11,7 @@ def play_game(player1, player2, game):
         current_player = players[current_player_index]
         valid_moves = game.get_valid_moves()
 
-        if isinstance(current_player, (MCTSPlayer, QLearningPlayer)):
+        if isinstance(current_player, (MCTSPlayer, QLearningPlayer, MinimaxPlayer)):
             current_player.set_game_state(game)
         # DQNAgent doesn't need set_game_state, it uses get_state in make_move
 
@@ -43,6 +43,7 @@ def play_game(player1, player2, game):
     # Game over
     print(f"Game over. Winner: {game.winner}")
 
+
 def Zoo():
     while True:
         game = U3()
@@ -53,9 +54,11 @@ def Zoo():
         print("3. MCTS AI")
         print("4. Q-Learning AI")
         print("5. DQN AI")
+        print("6. AlphaZero AI")
+        print("7. Minimax AI")
 
-        player1_type = input("Select Player 1 type (1, 2, 3, 4, or 5): ")
-        player2_type = input("Select Player 2 type (1, 2, 3, 4, or 5): ")
+        player1_type = input("Select Player 1 type (1, 2, 3, 4, 5, 6, or 7): ")
+        player2_type = input("Select Player 2 type (1, 2, 3, 4, 5, 6, or 7): ")
 
         def create_player(player_type, symbol):
             if player_type == '1':
@@ -72,6 +75,12 @@ def Zoo():
                 dqn_player = DQNAgent(symbol)
                 dqn_player.load_model('dqn_u3_model.pth')
                 return dqn_player
+            elif player_type == '6':
+                alpha_zero_player = AlphaZeroPlayer(symbol)
+                alpha_zero_player.load_model('ZERO_model_iteration_9.pth')
+                return alpha_zero_player
+            elif player_type == '7':
+                return MinimaxPlayer(symbol)
             else:
                 raise ValueError("Invalid player type")
 
@@ -89,6 +98,8 @@ def Zoo():
         play_again = int(input("\nDo you want to play another game? YES<-1 No<-0 "))
         if play_again != 1:
             break
+
+    print("Thanks for playing!")
 
     print("Thanks for playing!")
 if __name__ == "__main__":
