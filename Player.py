@@ -385,3 +385,228 @@ def train_dqn_agent(agent, opponent, num_episodes):
 
 
 
+
+class AlphaZeroNet(nn.Module):
+    def __init__(self, input_shape=(3, 9, 9), action_size=81):
+        super(AlphaZeroNet, self).__init__()
+        self.conv1 = nn.Conv2d(input_shape[0], 64, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
+        self.fc1 = nn.Linear(256 * input_shape[1] * input_shape[2], 1024)
+        self.fc_value = nn.Linear(1024, 1)
+        self.fc_policy = nn.Linear(1024, action_size)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc1(x))
+        value = torch.tanh(self.fc_value(x))
+        policy = F.softmax(self.fc_policy(x), dim=1)
+        return policy, value
+
+class MCTSNodeAZ:
+    def __init__(self, game, parent=None, action=None, prior=0, cpuct=1.0):
+        self.game = game
+        self.parent = parent
+        self.action = action
+        self.children = {}
+        self.visit_count = 0
+        self.value_sum = 0
+        self.prior = prior
+        self.cpuct = cpuct
+
+    def expand(self, action_priors):
+        for action, prob in enumerate(action_priors):
+            if prob > 0:
+                child_game = deepcopy(self.game)
+                move = AlphaZeroPlayer.index_to_move(action)
+                if move in child_game.get_valid_moves():
+                    child_game.make_move(*move)
+                    self.children[action] = MCTSNodeAZ(child_game, self, action, prob, self.cpuct)
+
+    def select(self):
+        return max(self.children.items(), key=lambda item: item[1].get_ucb(self.visit_count))
+
+    def get_ucb(self, parent_visit_count):
+        if self.visit_count == 0:
+            return float('inf')
+        return (self.value_sum / self.visit_count) + \
+               (self.cpuct * self.prior * math.sqrt(parent_visit_count) / (1 + self.visit_count))
+
+
+
+class AlphaZeroPlayer(Player):
+    def __init__(self, symbol, input_shape=(3, 9, 9), action_size=81, mcts_simulations=800, cpuct=1.0):
+        self.symbol = symbol
+        self.mcts_simulations = mcts_simulations
+        self.cpuct = cpuct
+        self.action_size = action_size
+        self.net = AlphaZeroNet(input_shape, action_size)
+        self.optimizer = optim.Adam(self.net.parameters(), lr=0.001)
+
+    def get_state_tensor(self, game):
+        tensor = np.zeros((3, 9, 9), dtype=np.float32)
+        for br in range(3):
+            for bc in range(3):
+                for sr in range(3):
+                    for sc in range(3):
+                        if game.board[br][bc][sr][sc] == self.symbol:
+                            tensor[0, br * 3 + sr, bc * 3 + sc] = 1
+                        elif game.board[br][bc][sr][sc] != ' ':
+                            tensor[1, br * 3 + sr, bc * 3 + sc] = 1
+
+        valid_moves = game.get_valid_moves()
+        for move in valid_moves:
+            br, bc, sr, sc = move
+            tensor[2, br * 3 + sr, bc * 3 + sc] = 1
+
+        return torch.FloatTensor(tensor).unsqueeze(0)
+
+    def get_valid_moves_mask(self, game):
+        mask = np.zeros(self.action_size, dtype=np.float32)
+        valid_moves = game.get_valid_moves()
+        for move in valid_moves:
+            index = self.move_to_index(move)
+            mask[index] = 1
+        return mask
+
+    @staticmethod
+    def move_to_index(move):
+        br, bc, sr, sc = move
+        return br * 27 + bc * 9 + sr * 3 + sc
+
+    @staticmethod
+    def index_to_move(index):
+        br = index // 27
+        bc = (index % 27) // 9
+        sr = (index % 9) // 3
+        sc = index % 3
+        return (br, bc, sr, sc)
+
+    def mcts_search(self, game):
+        root = MCTSNodeAZ(game, cpuct=self.cpuct)
+
+        for _ in range(self.mcts_simulations):
+            node = root
+            search_path = [node]
+
+            # Selection
+            while node.children and not node.game.game_over:
+                action, node = node.select()
+                search_path.append(node)
+
+            # Expansion and evaluation
+            state = self.get_state_tensor(node.game)
+            action_probs, value = self.net(state)
+            valid_moves = self.get_valid_moves_mask(node.game)
+            action_probs = action_probs.detach().numpy().flatten() * valid_moves
+            action_probs /= np.sum(action_probs) + 1e-8
+
+            if not node.game.game_over:
+                node.expand(action_probs)
+
+            # Backpropagation
+            for node in reversed(search_path):
+                node.value_sum += value.item() if node.game.current_player == self.symbol else -value.item()
+                node.visit_count += 1
+
+        # Return normalized visit counts as action probabilities
+        actions_visits = [(action, child.visit_count) for action, child in root.children.items()]
+        if not actions_visits:
+            return np.ones(self.action_size) / self.action_size  # Uniform distribution if no valid moves
+        actions, visits = zip(*actions_visits)
+        probs = np.zeros(self.action_size)
+        probs[list(actions)] = np.array(visits) / np.sum(visits)
+        return probs
+
+    def make_move(self, game):
+        probs = self.mcts_search(game)
+        action = np.random.choice(len(probs), p=probs)
+        return self.index_to_move(action)
+
+    def train(self, memory):
+        batch = random.sample(memory, min(len(memory), 32))
+        state_batch = torch.cat([data[0] for data in batch])
+        mcts_probs_batch = torch.from_numpy(np.array([data[1] for data in batch])).float()
+        value_batch = torch.from_numpy(np.array([data[2] for data in batch])).float()
+
+        self.optimizer.zero_grad()
+        policy_batch, value_batch_pred = self.net(state_batch)
+
+        value_loss = F.mse_loss(value_batch_pred.view(-1), value_batch)
+        policy_loss = -torch.mean(torch.sum(mcts_probs_batch * torch.log(policy_batch + 1e-8), 1))
+        loss = value_loss + policy_loss
+
+        loss.backward()
+        self.optimizer.step()
+
+        return loss.item()
+
+    def save_model(self, path):
+        torch.save(self.net.state_dict(), path)
+
+    def load_model(self, path):
+        self.net.load_state_dict(torch.load(path))
+        self.net.eval()
+
+
+class MinimaxPlayer(Player):
+    def __init__(self, symbol, depth=3):
+        super().__init__(symbol)
+        self.depth = depth  # Depth to which the minimax algorithm searches
+        self.nodes = 0
+
+    def make_move(self, game):
+        _, move = self.minimax(game, self.depth, True, float('-inf'), float('inf'))
+        return move
+
+    def minimax(self, game, depth, maximizing_player, alpha, beta):
+        if depth == 0 or game.game_over:
+            return self.evaluate(game), None
+
+        if maximizing_player:
+            max_eval = float('-inf')
+            best_move = None
+            for move in game.get_valid_moves():
+                self.nodes += 1
+                game_copy = deepcopy(game)
+                game_copy.make_move(*move)
+                eval, _ = self.minimax(game_copy, depth - 1, False, alpha, beta)
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
+                alpha = max(alpha, eval)
+                if beta <= alpha:
+
+                    break  # Beta cut-off
+            return max_eval, best_move
+        else:
+            min_eval = float('inf')
+            best_move = None
+            for move in game.get_valid_moves():
+                self.nodes += 1
+                game_copy = deepcopy(game)
+                game_copy.make_move(*move)
+                eval, _ = self.minimax(game_copy, depth - 1, True, alpha, beta)
+                if eval < min_eval:
+                    min_eval = eval
+                    best_move = move
+                beta = min(beta, eval)
+                if beta <= alpha:
+                    break  # Alpha cut-off
+            return min_eval, best_move
+
+    def evaluate(self, game):
+        if game.winner == self.symbol:
+            return 100  # Favorable outcome for MinimaxPlayer
+        elif game.winner and game.winner != self.symbol:
+            return -100  # Unfavorable outcome for MinimaxPlayer
+        else:
+            return 0  # Neutral outcome (e.g., draw or game not finished)
+
+    def set_game_state(self, game_state):
+        self.game_state = deepcopy(game_state)
+
+
