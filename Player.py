@@ -383,9 +383,6 @@ def train_dqn_agent(agent, opponent, num_episodes):
     return agent
 
 
-
-
-
 class AlphaZeroNet(nn.Module):
     def __init__(self, input_shape=(3, 9, 9), action_size=81):
         super(AlphaZeroNet, self).__init__()
@@ -434,7 +431,6 @@ class MCTSNodeAZ:
             return float('inf')
         return (self.value_sum / self.visit_count) + \
                (self.cpuct * self.prior * math.sqrt(parent_visit_count) / (1 + self.visit_count))
-
 
 
 class AlphaZeroPlayer(Player):
